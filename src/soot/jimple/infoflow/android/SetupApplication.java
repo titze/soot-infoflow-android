@@ -238,7 +238,10 @@ public class SetupApplication {
 
 		// Add the callback methods
 		if (enableCallbacks)
-			calculateCallbackMethods(resParser);
+			calculateCallbackMethods(resParser, Integer.MAX_VALUE);
+		else {
+			calculateCallbackMethods(resParser, 1);
+		}
 
 		sources = new HashSet<AndroidMethod>(sourceMethods);
 		sinks = new HashSet<AndroidMethod>(sinkMethods);
@@ -278,12 +281,24 @@ public class SetupApplication {
 	 * @param resParser The binary resource parser containing the app resources
 	 * @throws IOException Thrown if a required configuration cannot be read
 	 */
-	private void calculateCallbackMethods(ARSCFileParser resParser) throws IOException {
+	private void calculateCallbackMethods(ARSCFileParser resParser, int num_runs_callback_generation) throws IOException {
+		long time = System.currentTimeMillis();
 		AnalyzeJimpleClass jimpleClass = null;
 		LayoutFileParser lfp = new LayoutFileParser(this.appPackageName, resParser);
 
 		boolean hasChanged = true;
-		while (hasChanged) {
+		int count = 0;
+		Map<String, List<String>> callbackFunctions_done = null;
+		Map<String, List<String>> callbackFunctions_todo = null;
+		boolean firstRun = true;
+
+		while (count < num_runs_callback_generation) {
+			count++;
+			long time2 = System.currentTimeMillis();
+			System.out.println("Calculating Callback methods, run #" + count + " in " + (time2 - time) + " ms.");
+			time = time2;
+			if (!hasChanged)
+				break;
 			hasChanged = false;
 			
 			// Create the new iteration of the main method
@@ -291,38 +306,106 @@ public class SetupApplication {
 			initializeSoot();
 			createMainMethod();
 			
-			if (jimpleClass == null) {
-				// Collect the callback interfaces implemented in the app's source code
-				jimpleClass = new AnalyzeJimpleClass(entrypoints);
-				jimpleClass.collectCallbackMethods();
+			if (callbackFunctions_done == null) {
+				// Create the new iteration of the main method
+				// ########
 
-				// Find the user-defined sources in the layout XML files. This
-				// only needs to be done once, but is a Soot phase.
-				lfp.parseLayoutFile(apkFileLocation, entrypoints);
+				AndroidEntryPointCreator epc = createEntryPointCreator();
+				SootMethod entryPoint = epc.createDummyMain();
+				Scene.v().setEntryPoints(Collections.singletonList(entryPoint));
+				if (Scene.v().containsClass(entryPoint.getDeclaringClass().getName()))
+					Scene.v().removeClass(entryPoint.getDeclaringClass());
+				Scene.v().addClass(entryPoint.getDeclaringClass());
+
+				callbackFunctions_done = new HashMap<String, List<String>>(epc.containedClasses);
+			} else {
+				List<String> androidClasses = new ArrayList<String>(callbackFunctions_todo.size());
+				for(Entry<String, List<String>> entry: callbackFunctions_todo.entrySet()) {
+					if (entry.getValue() != null && entry.getValue().size() > 0) {
+						androidClasses.add(entry.getKey());
+					}
+				}
+				AndroidEntryPointCreator epc = new AndroidEntryPointCreator(androidClasses);
+				epc.setCallbackFunctions(callbackFunctions_todo);
+				SootMethod entryPoint = epc.createDummyMain();
+				Scene.v().setEntryPoints(Collections.singletonList(entryPoint));
+				if (Scene.v().containsClass(entryPoint.getDeclaringClass().getName())) {
+					Scene.v().removeClass(entryPoint.getDeclaringClass());
+				}
+				Scene.v().addClass(entryPoint.getDeclaringClass());
+
+				for(Entry<String, List<String>> entry: callbackFunctions_todo.entrySet()) {
+					List<String> inner = callbackFunctions_done.get(entry.getKey());
+					if (inner == null) {
+						inner = new ArrayList<String>();
+						callbackFunctions_done.put(entry.getKey(), inner);
+					}
+					inner.addAll(entry.getValue());
+				}
 			}
-			else
-				jimpleClass.collectCallbackMethodsIncremental();
+			
+			if (firstRun) {
+				if (jimpleClass == null) {
+					// Collect the callback interfaces implemented in the app's source code
+					jimpleClass = new AnalyzeJimpleClass(entrypoints);
+					jimpleClass.collectCallbackMethods();
+
+					// Find the user-defined sources in the layout XML files. This
+					// only needs to be done once, but is a Soot phase.
+					lfp.parseLayoutFile(apkFileLocation, entrypoints);
+				} else {
+					jimpleClass.collectCallbackMethodsIncremental();
+					firstRun = false;
+				}
+			}
 			
 			// Run the soot-based operations
-	        PackManager.v().getPack("wjpp").apply();
-	        PackManager.v().getPack("cg").apply();
-	        PackManager.v().getPack("wjtp").apply();
+			PackManager.v().getPack("wjpp").apply();
+			long bef = System.currentTimeMillis();
+			PackManager.v().getPack("cg").apply();
+			System.out.println("TIME: cg: " + (System.currentTimeMillis() - bef));
+			bef = System.currentTimeMillis();
+			PackManager.v().getPack("wjtp").apply();
+			System.out.println("TIME: wjtp: " + (System.currentTimeMillis() - bef));
 	        
-			this.layoutControls = lfp.getUserControls();
-			System.out.println("Found " + this.layoutControls.size() + " layout controls");
+//			this.layoutControls = lfp.getUserControls();
+//			System.out.println("Found " + this.layoutControls.size() + " layout controls");
+			
+			callbackFunctions_todo = new HashMap<String, List<String>>();
 
 			// Collect the results of the soot-based phases
 			for (Entry<String, Set<AndroidMethod>> entry : jimpleClass.getCallbackMethods().entrySet()) {
-				if (this.callbackMethods.containsKey(entry.getKey())) {
-					if (this.callbackMethods.get(entry.getKey()).addAll(entry.getValue()))
-						hasChanged = true;
+//				if (this.callbackMethods.containsKey(entry.getKey())) {
+//					if (this.callbackMethods.get(entry.getKey()).addAll(entry.getValue()))
+//						hasChanged = true;
+//				}
+//				else {
+//					this.callbackMethods.put(entry.getKey(), new HashSet<AndroidMethod>(entry.getValue()));
+//					hasChanged = true;
+//				}
+				List<String> inner = callbackFunctions_todo.get(entry.getKey());
+				if (inner == null) {
+					inner = new ArrayList<String>();
+					callbackFunctions_todo.put(entry.getKey(), inner);
 				}
-				else {
+				for (AndroidMethod m: entry.getValue()) {
+					if (!inner.contains(m) 
+							&& (!callbackFunctions_done.containsKey(entry.getKey())
+									|| !callbackFunctions_done.get(entry.getKey()).contains(m.getSignature())
+							)) {
+						inner.add(m.getSignature());
+						hasChanged = true;
+					}
+				}
+				
+				if (this.callbackMethods.containsKey(entry.getKey())) {
+					this.callbackMethods.get(entry.getKey()).addAll(entry.getValue());
+				} else {
 					this.callbackMethods.put(entry.getKey(), new HashSet<AndroidMethod>(entry.getValue()));
-					hasChanged = true;
 				}
 			}
 		}
+		this.layoutControls = lfp.getUserControls();
 		
 		// Collect the XML-based callback methods
 		for (Entry<SootClass, Set<Integer>> lcentry : jimpleClass.getLayoutClasses().entrySet())
@@ -376,6 +459,7 @@ public class SetupApplication {
 			System.out.println("Found " + callbacksPlain.size() + " callback methods for "
 					+ this.callbackMethods.size() + " components");
 		}
+		System.out.println("done Calculating Callback methods, number of runs: "+count);
 	}
 
 	/**
