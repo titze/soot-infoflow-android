@@ -171,6 +171,8 @@ public class LayoutFileParser extends AbstractResourceParser {
     	@Override
     	public void attr(String ns, String name, int resourceId, int type, Object obj) {
     		// Is this the target file attribute?
+    		if (name == null) return;
+    		
     		String tname = name.trim();
     		if (tname.equals("layout")) {
     			if (type == AxmlVisitor.TYPE_REFERENCE && obj instanceof Integer) {
@@ -344,6 +346,7 @@ public class LayoutFileParser extends AbstractResourceParser {
 								return;
 							
 							AxmlReader rdr = new AxmlReader(data);
+							try {
 							rdr.accept(new AxmlVisitor() {
 								
 								@Override
@@ -360,6 +363,9 @@ public class LayoutFileParser extends AbstractResourceParser {
 										return super.first(ns, name);
 								}
 							});
+							} catch (IllegalArgumentException e) {
+								System.err.println("LayoutFileParser: " + e.getMessage());
+							}
 							
 							System.out.println("Found " + userControls.size() + " layout controls in file "
 									+ fileName);
