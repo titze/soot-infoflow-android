@@ -133,7 +133,9 @@ public class ProcessManifest {
 							
 							// Get the class name
 							attrValue = getAttributeValue(parser, "name");
-							entryPointsClasses.add(expandClassName(attrValue));
+							if (attrValue.length() > 0) {
+								entryPointsClasses.add(expandClassName(attrValue));
+							}
 						}
 						else if (tagName.equals("uses-permission")) {
 							String permissionName = getAttributeValue(parser, "name");
