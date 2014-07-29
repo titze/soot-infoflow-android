@@ -23,6 +23,7 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xmlpull.v1.XmlPullParserException;
 
 import soot.Main;
 import soot.PackManager;
@@ -46,6 +47,7 @@ import soot.jimple.infoflow.config.IInfoflowConfig;
 import soot.jimple.infoflow.data.pathBuilders.DefaultPathBuilderFactory;
 import soot.jimple.infoflow.entryPointCreators.AndroidEntryPointCreator;
 import soot.jimple.infoflow.handlers.ResultsAvailableHandler;
+import soot.jimple.infoflow.ipc.IIPCManager;
 import soot.jimple.infoflow.taintWrappers.ITaintPropagationWrapper;
 import soot.jimple.infoflow.util.SootMethodRepresentationParser;
 import soot.options.Options;
@@ -65,7 +67,9 @@ public class SetupApplication {
 	private boolean enableCallbacks = true;
 	private boolean flowSensitiveAliasing = true;
 	private boolean computeResultPaths = true;
-	
+	private boolean ignoreFlowsInSystemPackages = true;
+	private boolean enableCallbackSources = true;
+
 	private int accessPathLength = 5;
 	private LayoutMatchingMode layoutMatchingMode = LayoutMatchingMode.MatchSensitiveOnly;
 	
@@ -87,6 +91,8 @@ public class SetupApplication {
 	
 	private IInfoflowConfig sootConfig = null;
 	private BiDirICFGFactory cfgFactory = null;
+
+	private IIPCManager ipcManager = null;
 	
 	/**
 	 * Creates a new instance of the {@link SetupApplication} class
@@ -101,6 +107,22 @@ public class SetupApplication {
 		
 		this.androidJar = androidJar;
 		this.apkFileLocation = apkFileLocation;
+		
+		this.ipcManager = null;
+	}
+	
+	/**
+	 * Creates a new instance of the {@link SetupApplication} class
+	 * @param androidJar The path to the Android SDK's "platforms" directory if
+	 * Soot shall automatically select the JAR file to be used or the path to
+	 * a single JAR file to force one.
+	 * @param apkFileLocation The path to the APK file to be analyzed
+	 * @param ipcManager The IPC manager to use for modelling inter-component
+	 * and inter-application data flows
+	 */
+	public SetupApplication(String androidJar, String apkFileLocation, IIPCManager ipcManager) {
+		this(androidJar, apkFileLocation);
+		this.ipcManager = ipcManager;
 	}
 	
 	/**
@@ -196,9 +218,11 @@ public class SetupApplication {
 	 * @param sourceSinkFile The full path and file name of the file containing
 	 * the sources and sinks
 	 * @throws IOException Thrown if the given source/sink file could not be read.
+	 * @throws XmlPullParserException Thrown if the Android manifest file could
+	 * not be read.
 	 */
 	public void calculateSourcesSinksEntrypoints
-			(String sourceSinkFile) throws IOException {
+			(String sourceSinkFile) throws IOException, XmlPullParserException {
 		PermissionMethodParser parser = PermissionMethodParser.fromFile(sourceSinkFile);
 		Set<AndroidMethod> sources = new HashSet<AndroidMethod>();
 		Set<AndroidMethod> sinks = new HashSet<AndroidMethod>();
@@ -217,10 +241,12 @@ public class SetupApplication {
 	 * @param sourceMethods The set of methods to be considered as sources
 	 * @param sinkMethods The set of methods to be considered as sinks
 	 * @throws IOException Thrown if the given source/sink file could not be read.
+	 * @throws XmlPullParserException Thrown if the Android manifest file could
+	 * not be read.
 	 */
 	public void calculateSourcesSinksEntrypoints
 			(Set<AndroidMethod> sourceMethods,
-			Set<AndroidMethod> sinkMethods) throws IOException {
+			Set<AndroidMethod> sinkMethods) throws IOException, XmlPullParserException {
 		ProcessManifest processMan = new ProcessManifest();
 
 		// To look for callbacks, we need to start somewhere. We use the Android
@@ -270,6 +296,7 @@ public class SetupApplication {
 					layoutMatchingMode, layoutControls);
 			sourceSinkManager.setAppPackageName(this.appPackageName);
 			sourceSinkManager.setResourcePackages(this.resourcePackages);
+			sourceSinkManager.setEnableCallbackSources(this.enableCallbackSources);
 		}
 		
 		entryPointCreator = createEntryPointCreator();
