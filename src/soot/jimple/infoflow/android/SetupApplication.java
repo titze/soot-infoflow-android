@@ -69,7 +69,7 @@ public class SetupApplication {
 	private boolean computeResultPaths = true;
 	private boolean ignoreFlowsInSystemPackages = true;
 	private boolean enableCallbackSources = true;
-
+	
 	private int accessPathLength = 5;
 	private LayoutMatchingMode layoutMatchingMode = LayoutMatchingMode.MatchSensitiveOnly;
 	
@@ -247,14 +247,12 @@ public class SetupApplication {
 	public void calculateSourcesSinksEntrypoints
 			(Set<AndroidMethod> sourceMethods,
 			Set<AndroidMethod> sinkMethods) throws IOException, XmlPullParserException {
-		ProcessManifest processMan = new ProcessManifest();
-
 		// To look for callbacks, we need to start somewhere. We use the Android
 		// lifecycle methods for this purpose.
-		processMan.loadManifestFile(apkFileLocation);
+		ProcessManifest processMan = new ProcessManifest(apkFileLocation);
 		this.appPackageName = processMan.getPackageName();
 		this.entrypoints = processMan.getEntryPointClasses();
-
+		
 		// Parse the resource file
 		long beforeARSC = System.nanoTime();
 		ARSCFileParser resParser = new ARSCFileParser();
