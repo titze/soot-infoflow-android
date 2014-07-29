@@ -573,14 +573,19 @@ public class SetupApplication {
 		Infoflow.setAccessPathLength(accessPathLength);
 		info.setFlowSensitiveAliasing(flowSensitiveAliasing);
 		info.setComputeResultPaths(computeResultPaths);
+		info.setIgnoreFlowsInSystemPackages(ignoreFlowsInSystemPackages);
 		
 		info.setInspectSources(false);
 		info.setInspectSinks(false);
 		
 		info.setCallgraphAlgorithm(callgraphAlgorithm);
 		
-		info.computeInfoflow(apkFileLocation, path, entryPointCreator, new ArrayList<String>(),
-				sourceSinkManager);
+		if (null != ipcManager) {
+			info.setIPCManager(ipcManager);
+		}
+
+		info.computeInfoflow(apkFileLocation, path, entryPointCreator, sourceSinkManager);
+
 		return info.getResults();
 	}
 
@@ -658,6 +663,16 @@ public class SetupApplication {
 	}
 	
 	/**
+	 * Sets whether flows starting or ending in system packages such as Android's
+	 * support library shall be ignored.
+	 * @param ignoreFlowsInSystemPackages True if flows starting or ending in
+	 * system packages shall be ignored, otherwise false.
+	 */
+	public void setIgnoreFlowsInSystemPackages(boolean ignoreFlowsInSystemPackages) {
+		this.ignoreFlowsInSystemPackages = ignoreFlowsInSystemPackages;
+	}
+
+	/**
 	 * Sets whether a flow sensitive aliasing algorithm shall be used
 	 * @param flowSensitiveAliasing True if a flow sensitive aliasing algorithm
 	 * shall be used, otherwise false
@@ -675,6 +690,14 @@ public class SetupApplication {
 		this.enableCallbacks = enableCallbacks;
 	}
 
+	/**
+	 * Sets whether the taint analysis shall consider callback as sources
+	 * @param enableCallbackSources True if setting callbacks as sources
+	 */
+	public void setEnableCallbackSources(boolean enableCallbackSources) {
+		this.enableCallbackSources = enableCallbackSources;
+	}
+	
 	/**
 	 * Sets the maximum access path length to be used in the solver
 	 * @param accessPathLength The maximum access path length to be used in the
@@ -730,5 +753,4 @@ public class SetupApplication {
 	public void setIcfgFactory(BiDirICFGFactory factory) {
 		this.cfgFactory = factory;
 	}
-
 }
