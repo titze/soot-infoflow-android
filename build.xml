@@ -30,7 +30,7 @@
 
 	<target name="jar" depends="compile">
 		<mkdir dir="build/jar" />
-		<jar destfile="${infoflow-android.jar}infoflow-android.jar" basedir="build/classes">
+		<jar destfile="${infoflow-android.jar}" basedir="build/classes">
 			<manifest>
 				<attribute name="Main-Class" value="soot.jimple.infoflow.android.TestApps.Test" />
 				<!-- <attribute name="Main-Class" value="?"/>-->
@@ -117,8 +117,8 @@
             <zipfileset src="lib/axml-2.0.jar"/>
             <zipfileset src="lib/slf4j-api-1.7.5.jar"/>
             <zipfileset src="lib/slf4j-simple-1.7.5.jar"/>
-          	<zipfileset src="lib/soot-infoflow.jar"/>
-          	<zipfileset src="infoflow-android.jar"/>
+            <zipfileset src="${infoflow.jar}"/>
+          	<zipfileset src="${infoflow-android.jar}"/>
         </jar>
 		<delete dir="META-INF"/>
     </target>
