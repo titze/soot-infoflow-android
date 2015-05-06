@@ -22,13 +22,13 @@ import soot.jimple.infoflow.android.axml.ApkHandler;
  * This class provides easy access to all data of an AppManifest.<br />
  * Nodes and attributes of a parsed manifest can be changed. A new byte compressed
  * manifest considering the changes can be generated.
- * 
+ *
  * @author Steven Arzt
  * @author Stefan Haas, Mario Schlipf
  * @see <a href="http://developer.android.com/guide/topics/manifest/manifest-intro.html">App Manifest</a>
  */
 public class ProcessManifest {
-	
+
 	/**
 	 * Enumeration containing the various component types supported in Android
 	 */
@@ -38,30 +38,30 @@ public class ProcessManifest {
 		ContentProvider,
 		BroadcastReceiver
 	}
-		
+
 	/**
 	 * Handler for zip-like apk files
 	 */
 	protected ApkHandler apk = null;
-	
+
 	/**
 	 * Handler for android xml files
 	 */
 	protected AXmlHandler axml;
-	
+
 	// android manifest data
 	protected AXmlNode manifest;
 	protected AXmlNode application;
-	
+
 	// Components in the manifest file
 	protected List<AXmlNode> providers = null;
 	protected List<AXmlNode> services = null;
 	protected List<AXmlNode> activities = null;
 	protected List<AXmlNode> receivers = null;
-	
+
 	/**
 	 * Processes an AppManifest which is within the file identified by the given path.
-	 * 
+	 *
 	 * @param	apkPath					file path to an APK.
 	 * @throws	IOException				if an I/O error occurs.
 	 * @throws	XmlPullParserException	can occur due to a malformed manifest.
@@ -69,10 +69,10 @@ public class ProcessManifest {
 	public ProcessManifest(String apkPath) throws IOException, XmlPullParserException {
 		this(new File(apkPath));
 	}
-	
+
 	/**
 	 * Processes an AppManifest which is within the given {@link File}.
-	 * 
+	 *
 	 * @param	apkFile					the AppManifest within the given APK will be parsed.
 	 * @throws	IOException				if an I/O error occurs.
 	 * @throws	XmlPullParserException	can occur due to a malformed manifest.
@@ -90,10 +90,10 @@ public class ProcessManifest {
 				is.close();
 		}
 	}
-		
+
 	/**
 	 * Processes an AppManifest which is provided by the given {@link InputStream}.
-	 * 
+	 *
 	 * @param	manifestIS				InputStream for an AppManifest.
 	 * @throws	IOException				if an I/O error occurs.
 	 * @throws	XmlPullParserException	can occur due to a malformed manifest.
@@ -101,36 +101,36 @@ public class ProcessManifest {
 	public ProcessManifest(InputStream manifestIS) throws IOException, XmlPullParserException {
 		this.handle(manifestIS);
 	}
-	
+
 	/**
 	 * Initialises the {@link ProcessManifest} by parsing the manifest provided by the given {@link InputStream}.
-	 * 
+	 *
 	 * @param	manifestIS				InputStream for an AppManifest.
 	 * @throws	IOException				if an I/O error occurs.
 	 * @throws	XmlPullParserException	can occur due to a malformed manifest.
 	 */
 	protected void handle(InputStream manifestIS) throws IOException, XmlPullParserException {
 		this.axml = new AXmlHandler(manifestIS);
-		
+
 		// get manifest node
 		List<AXmlNode> manifests = this.axml.getNodesWithTag("manifest");
 		if(manifests.isEmpty()) throw new RuntimeException("Manifest contains no manifest node");
 		else if(manifests.size() > 1) throw new RuntimeException("Manifest contains more than one manifest node");
 		this.manifest = manifests.get(0);
-		
+
 		// get application node
 		List<AXmlNode> applications = this.manifest.getChildrenWithTag("application");
 		if(applications.isEmpty()) throw new RuntimeException("Manifest contains no application node");
 		else if(applications.size() > 1) throw new RuntimeException("Manifest contains more than one application node");
 		this.application = applications.get(0);
-				
+
 		// Get components
 		this.providers = this.axml.getNodesWithTag("provider");
 		this.services = this.axml.getNodesWithTag("service");
 		this.activities = this.axml.getNodesWithTag("activity");
 		this.receivers = this.axml.getNodesWithTag("receiver");
 	}
-	
+
 	/**
 	 * Generates a full class name from a short class name by appending the
 	 * globally-defined package when necessary
@@ -146,62 +146,62 @@ public class ProcessManifest {
 		else
 			return className;
 	}
-	
+
 	/**
 	 * Returns the handler which parsed and holds the manifest's data.
-	 * 
+	 *
 	 * @return Android XML handler
 	 */
 	public AXmlHandler getAXml() {
 		return this.axml;
 	}
-	
+
 	/**
 	 * Returns the handler which opened the APK file. If {@link ProcessManifest} was
 	 * instanciated directly with an {@link InputStream} this will return <code>null</code>.
-	 * 
+	 *
 	 * @return APK Handler
 	 */
 	public ApkHandler getApk() {
 		return this.apk;
 	}
-	
+
 	/**
 	 * The unique <code>manifest</code> node of the AppManifest.
-	 * 
+	 *
 	 * @return manifest node
 	 */
 	public AXmlNode getManifest() {
 		return this.manifest;
 	}
-	
+
 	/**
 	 * The unique <code>application</code> node of the AppManifest.
-	 * 
+	 *
 	 * @return application node
 	 */
 	public AXmlNode getApplication() {
 		return this.application;
 	}
-	
+
 	/**
 	 * Returns a list containing all nodes with tag <code>provider</code>.
-	 * 
+	 *
 	 * @return list with all providers
 	 */
 	public ArrayList<AXmlNode> getProviders() {
 		return new ArrayList<AXmlNode>(this.providers);
 	}
-	
+
 	/**
 	 * Returns a list containing all nodes with tag <code>service</code>.
-	 * 
+	 *
 	 * @return list with all services
 	 */
 	public ArrayList<AXmlNode> getServices() {
 		return new ArrayList<AXmlNode>(this.services);
 	}
-	
+
 	/**
 	 * Gets all classes the contain entry points in this applications
 	 * @return All classes the contain entry points in this applications
@@ -210,7 +210,7 @@ public class ProcessManifest {
 		// If the application is not enabled, there are no entry points
 		if (!isApplicationEnabled())
 			return Collections.emptySet();
-		
+
 		// Collect the components
 		Set<String> entryPoints = new HashSet<String>();
 		for (AXmlNode node : this.activities)
@@ -221,14 +221,14 @@ public class ProcessManifest {
 			checkAndAddComponent(entryPoints, node);
 		for (AXmlNode node : this.receivers)
 			checkAndAddComponent(entryPoints, node);
-		
+
 		String appName = getApplicationName();
 		if (appName != null && !appName.isEmpty())
 			entryPoints.add(appName);
-		
+
 		return entryPoints;
 	}
-	
+
 	private void checkAndAddComponent(Set<String> entryPoints, AXmlNode node) {
 		AXmlAttribute<?> attrEnabled = node.getAttribute("enabled");
 		if (attrEnabled == null || !attrEnabled.getValue().equals(Boolean.FALSE)) {
@@ -248,7 +248,7 @@ public class ProcessManifest {
 			}
 		}
 	}
-	
+
 	/**
 	 * Checks if the specified name is a valid Android component name
 	 * @param name The Android component name to check
@@ -262,10 +262,10 @@ public class ProcessManifest {
 			return false;
 		if (Character.isDigit(name.charAt(0)))
 			return false;
-		
+
 		if (name.startsWith("."))
 			return true;
-		
+
 		// Be conservative
 		return false;
 	}
@@ -291,68 +291,68 @@ public class ProcessManifest {
 				return ComponentType.ContentProvider;
 		return null;
 	}
-	
+
 	/**
 	 * Returns a list containing all nodes with tag <code>activity</code>.
-	 * 
+	 *
 	 * @return list with all activities
 	 */
 	public ArrayList<AXmlNode> getActivities() {
 		return new ArrayList<AXmlNode>(this.activities);
 	}
-	
+
 	/**
 	 * Returns a list containing all nodes with tag <code>receiver</code>.
-	 * 
+	 *
 	 * @return list with all receivers
 	 */
 	public ArrayList<AXmlNode> getReceivers() {
 		return new ArrayList<AXmlNode>(this.receivers);
 	}
-	
+
 	/**
 	 * Returns the <code>provider</code> which has the given <code>name</code>.
-	 * 
+	 *
 	 * @param	name	the provider's name
 	 * @return	provider with <code>name</code>
 	 */
 	public AXmlNode getProvider(String name) {
 		return this.getNodeWithName(this.providers, name);
 	}
-	
+
 	/**
 	 * Returns the <code>service</code> which has the given <code>name</code>.
-	 * 
+	 *
 	 * @param	name	the service's name
 	 * @return	service with <code>name</code>
 	 */
 	public AXmlNode getService(String name) {
 		return this.getNodeWithName(this.services, name);
 	}
-	
+
 	/**
 	 * Returns the <code>activity</code> which has the given <code>name</code>.
-	 * 
+	 *
 	 * @param	name	the activitie's name
 	 * @return	activitiy with <code>name</code>
 	 */
 	public AXmlNode getActivity(String name) {
 		return this.getNodeWithName(this.activities, name);
 	}
-	
+
 	/**
 	 * Returns the <code>receiver</code> which has the given <code>name</code>.
-	 * 
+	 *
 	 * @param	name	the receiver's name
 	 * @return	receiver with <code>name</code>
 	 */
 	public AXmlNode getReceiver(String name) {
 		return this.getNodeWithName(this.receivers, name);
 	}
-	
+
 	/**
 	 * Iterates over <code>list</code> and checks which node has the given <code>name</code>.
-	 * 
+	 *
 	 * @param	list	contains nodes.
 	 * @param	name	the node's name.
 	 * @return	node with <code>name</code>.
@@ -363,15 +363,15 @@ public class ProcessManifest {
 			if(attr != null && attr.equals(name))
 				return node;
 		}
-		
+
 		return null;
 	}
-	
+
 	/**
 	 * Returns the Manifest as a compressed android xml byte array.
 	 * This will consider all changes made to the manifest and
 	 * application nodes respectively to their child nodes.
-	 * 
+	 *
 	 * @return	byte compressed AppManifest
 	 * @see		AXmlHandler#toByteArray()
 	 */
@@ -402,7 +402,7 @@ public class ProcessManifest {
 		AXmlAttribute<?> attr = this.manifest.getAttribute("versionCode");
 		return attr == null ? -1 : Integer.getInteger((String) attr.getValue());
 	}
-	
+
 	/**
 	 * Gets the application's version name as it is displayed to the user
 	 * @return The application#s version name as in pretty print
@@ -411,16 +411,16 @@ public class ProcessManifest {
 		AXmlAttribute<?> attr = this.manifest.getAttribute("versionName");
 		return attr == null ? null : (String) attr.getValue();
 	}
-	
+
 	/**
 	 * Gets the name of the Android application class
 	 * @return The name of the Android application class
 	 */
 	public String getApplicationName() {
 		AXmlAttribute<?> attr = this.application.getAttribute("name");
-		return attr == null ? null : expandClassName((String) attr.getValue());		
+		return attr == null ? null : expandClassName((String) attr.getValue());
 	}
-	
+
 	/**
 	 * Gets whether this Android application is enabled
 	 * @return True if this application is enabled, otherwise false
@@ -429,7 +429,7 @@ public class ProcessManifest {
 		AXmlAttribute<?> attr = this.application.getAttribute("enabled");
 		return attr == null || !attr.getValue().equals(Boolean.FALSE);
 	}
-	
+
 	/**
 	 * Gets the minimum SDK version on which this application is supposed to run
 	 * @return The minimum SDK version on which this application is supposed to run
@@ -439,16 +439,16 @@ public class ProcessManifest {
 		if (usesSdk == null || usesSdk.isEmpty())
 			return -1;
 		AXmlAttribute<?> attr = usesSdk.get(0).getAttribute("minSdkVersion");
-		
+
 		if (attr == null)
 			return -1;
-		
+
 		if (attr.getValue() instanceof Integer)
 			return (Integer) attr.getValue();
-		
-		return Integer.getInteger((String) attr.getValue());		
+
+		return Integer.getInteger((String) attr.getValue());
 	}
-	
+
 	/**
 	 * Gets the target SDK version for which this application was developed
 	 * @return The target SDK version for which this application was developed
@@ -461,13 +461,13 @@ public class ProcessManifest {
 
 		if (attr == null)
 			return -1;
-		
+
 		if (attr.getValue() instanceof Integer)
 			return (Integer) attr.getValue();
-		
-		return Integer.getInteger((String) attr.getValue());		
+
+		return Integer.getInteger((String) attr.getValue());
 	}
-	
+
 	/**
 	 * Gets the permissions this application requests
 	 * @return The permissions requested by this application
@@ -490,47 +490,47 @@ public class ProcessManifest {
 		}
 		return permissions;
 	}
-	
+
 	/**
 	 * Adds a new permission to the manifest.
 	 * @param complete permission name e.g. "android.permission.INTERNET"
 	 */
-	public void addPermission(String permissionName) {				
+	public void addPermission(String permissionName) {
 		AXmlNode permission = new AXmlNode("uses-permission", null, manifest);
-		AXmlAttribute<String> permissionNameAttr = new AXmlAttribute<String>("name", permissionName,  AXmlHandler.ANDROID_NAMESPACE);		
+		AXmlAttribute<String> permissionNameAttr = new AXmlAttribute<String>("name", permissionName,  AXmlHandler.ANDROID_NAMESPACE);
 		permission.addAttribute(permissionNameAttr);
 	}
-	
+
 	/**
 	 * Adds a new provider to the manifest
 	 * @param node provider represented as an AXmlNode
 	 */
 	public void addProvider(AXmlNode node) {
-		if (providers.isEmpty()) 
-			providers = new ArrayList<AXmlNode>();		
+		if (providers.isEmpty())
+			providers = new ArrayList<AXmlNode>();
 		providers.add(node);
 	}
-	
+
 	/**
 	 * Adds a new receiver to the manifest
 	 * @param node receiver represented as an AXmlNode
 	 */
 	public void addReceiver(AXmlNode node) {
-		if (receivers.isEmpty()) 
+		if (receivers.isEmpty())
 			receivers = new ArrayList<AXmlNode>();
 		receivers.add(node);
 	}
-	
+
 	/**
 	 * Adds a new activity to the manifest
 	 * @param node activity represented as an AXmlNode
 	 */
 	public void addActivity(AXmlNode node) {
-		if (activities.isEmpty()) 
+		if (activities.isEmpty())
 			activities = new ArrayList<AXmlNode>();
 		activities.add(node);
 	}
-	
+
 	/**
 	 * Adds a new service to the manifest
 	 * @param node service represented as an AXmlNode
@@ -540,7 +540,7 @@ public class ProcessManifest {
 			services = new ArrayList<AXmlNode>();
 		services.add(node);
 	}
-	
+
 	/**
 	 * Closes this apk file and all resources associated with it
 	 */
@@ -548,5 +548,5 @@ public class ProcessManifest {
 		if (this.apk != null)
 			this.apk.close();
 	}
-	
+
 }

@@ -4,7 +4,7 @@
  * are made available under the terms of the GNU Lesser Public License v2.1
  * which accompanies this distribution, and is available at
  * http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
- * 
+ *
  * Contributors: Christian Fritz, Steven Arzt, Siegfried Rasthofer, Eric
  * Bodden, and others.
  ******************************************************************************/
@@ -58,6 +58,7 @@ import soot.jimple.infoflow.handlers.ResultsAvailableHandler;
 import soot.jimple.infoflow.ipc.IIPCManager;
 import soot.jimple.infoflow.results.InfoflowResults;
 import soot.jimple.infoflow.taintWrappers.ITaintPropagationWrapper;
+import soot.jimple.infoflow.util.SootMethodRepresentationParser;
 import soot.options.Options;
 
 public class SetupApplication {
@@ -101,13 +102,13 @@ public class SetupApplication {
 	private BiDirICFGFactory cfgFactory = null;
 
 	private IIPCManager ipcManager = null;
-	
+
 	private long maxMemoryConsumption = -1;
 	private CodeEliminationMode codeEliminationMode = CodeEliminationMode.RemoveSideEffectFreeCode;
 
 	/**
 	 * Creates a new instance of the {@link SetupApplication} class
-	 * 
+	 *
 	 * @param androidJar
 	 *            The path to the Android SDK's "platforms" directory if Soot shall automatically select the JAR file to
 	 *            be used or the path to a single JAR file to force one.
@@ -126,7 +127,7 @@ public class SetupApplication {
 
 	/**
 	 * Creates a new instance of the {@link SetupApplication} class
-	 * 
+	 *
 	 * @param androidJar
 	 *            The path to the Android SDK's "platforms" directory if Soot shall automatically select the JAR file to
 	 *            be used or the path to a single JAR file to force one.
@@ -142,7 +143,7 @@ public class SetupApplication {
 
 	/**
 	 * Gets the set of sinks loaded into FlowDroid
-	 * 
+	 *
 	 * @return The set of sinks loaded into FlowDroid
 	 */
 	public Set<SourceSinkDefinition> getSinks() {
@@ -167,7 +168,7 @@ public class SetupApplication {
 
 	/**
 	 * Gets the set of sources loaded into FlowDroid
-	 * 
+	 *
 	 * @return The set of sources loaded into FlowDroid
 	 */
 	public Set<SourceSinkDefinition> getSources() {
@@ -192,7 +193,7 @@ public class SetupApplication {
 
 	/**
 	 * Gets the set of classes containing entry point methods for the lifecycle
-	 * 
+	 *
 	 * @return The set of classes containing entry point methods for the lifecycle
 	 */
 	public Set<String> getEntrypointClasses() {
@@ -216,7 +217,7 @@ public class SetupApplication {
 	/**
 	 * Sets the taint wrapper to be used for propagating taints over unknown (library) callees. If this value is null,
 	 * no taint wrapping is used.
-	 * 
+	 *
 	 * @param taintWrapper
 	 *            The taint wrapper to use or null to disable taint wrapping
 	 */
@@ -227,7 +228,7 @@ public class SetupApplication {
 	/**
 	 * Gets the taint wrapper to be used for propagating taints over unknown (library) callees. If this value is null,
 	 * no taint wrapping is used.
-	 * 
+	 *
 	 * @return The taint wrapper to use or null if taint wrapping is disabled
 	 */
 	public ITaintPropagationWrapper getTaintWrapper() {
@@ -236,7 +237,7 @@ public class SetupApplication {
 
 	/**
 	 * Calculates the sets of sources, sinks, entry points, and callbacks methods for the given APK file.
-	 * 
+	 *
 	 * @param sources
 	 *            The methods that shall be considered as sources
 	 * @param sinks
@@ -250,32 +251,32 @@ public class SetupApplication {
 			Set<AndroidMethod> sinks) throws IOException, XmlPullParserException {
 		final Set<SourceSinkDefinition> sourceDefs = new HashSet<>(sources.size());
 		final Set<SourceSinkDefinition> sinkDefs = new HashSet<>(sinks.size());
-		
+
 		for (AndroidMethod am : sources)
 			sourceDefs.add(new SourceSinkDefinition(am));
 		for (AndroidMethod am : sinks)
 			sinkDefs.add(new SourceSinkDefinition(am));
-		
+
 		ISourceSinkDefinitionProvider parser = new ISourceSinkDefinitionProvider() {
-			
+
 			@Override
 			public Set<SourceSinkDefinition> getSources() {
 				return sourceDefs;
 			}
-			
+
 			@Override
 			public Set<SourceSinkDefinition> getSinks() {
 				return sinkDefs;
 			}
-			
+
 		};
-		
+
 		calculateSourcesSinksEntrypoints(parser);
 	}
-	
+
 	/**
 	 * Calculates the sets of sources, sinks, entry points, and callbacks methods for the given APK file.
-	 * 
+	 *
 	 * @param sourceSinkFile
 	 *            The full path and file name of the file containing the sources and sinks
 	 * @throws IOException
@@ -288,20 +289,20 @@ public class SetupApplication {
 
 		String fileExtension = sourceSinkFile.substring(sourceSinkFile.lastIndexOf("."));
 		fileExtension = fileExtension.toLowerCase();
-		
+
 		if (fileExtension.equals(".xml"))
 			parser = XMLSourceSinkParser.fromFile(sourceSinkFile);
 		else if(fileExtension.equals(".txt"))
 			parser = PermissionMethodParser.fromFile(sourceSinkFile);
 		else
 			throw new UnsupportedDataTypeException("The Inputfile isn't a .txt or .xml file.");
-		
+
 		calculateSourcesSinksEntrypoints(parser);
 	}
 
 	/**
 	 * Calculates the sets of sources, sinks, entry points, and callbacks methods for the given APK file.
-	 * 
+	 *
 	 * @param sourcesAndSinks
 	 *            A provider from which the analysis can obtain the list of
 	 *            sources and sinks
@@ -335,7 +336,15 @@ public class SetupApplication {
 			// Some informational output
 			System.out.println("Found " + lfp.getUserControls() + " layout controls");
 		}
-		
+
+		//add sink for Intents:
+		{
+			AndroidMethod setResult = new AndroidMethod(SootMethodRepresentationParser.v().parseSootMethodString
+					("<android.app.Activity: void startActivity(android.content.Intent)>"));
+			setResult.setSink(true);
+			sinks.add(setResult);
+		}
+
 		System.out.println("Entry point calculation done.");
 
 		// Clean up everything we no longer need
@@ -364,7 +373,7 @@ public class SetupApplication {
 
 	/**
 	 * Adds a method to the set of callback method
-	 * 
+	 *
 	 * @param layoutClass
 	 *            The layout class for which to register the callback
 	 * @param callbackMethod
@@ -381,7 +390,7 @@ public class SetupApplication {
 
 	/**
 	 * Calculates the set of callback methods declared in the XML resource files or the app's source code
-	 * 
+	 *
 	 * @param resParser
 	 *            The binary resource parser containing the app resources
 	 * @param lfp
@@ -393,7 +402,18 @@ public class SetupApplication {
 		AnalyzeJimpleClass jimpleClass = null;
 
 		boolean hasChanged = true;
-		while (hasChanged) {
+		int count = 0;
+		Map<String, List<String>> callbackFunctions_done = null;
+		Map<String, List<String>> callbackFunctions_todo = null;
+		boolean firstRun = true;
+
+		while (count < num_runs_callback_generation) {
+			count++;
+			long time2 = System.currentTimeMillis();
+			System.out.println("Calculating Callback methods, run #" + count + " in " + (time2 - time) + " ms.");
+			time = time2;
+			if (!hasChanged)
+				break;
 			hasChanged = false;
 
 			// Create the new iteration of the main method
@@ -484,8 +504,9 @@ public class SetupApplication {
 			System.out.println("Found " + callbacksPlain.size() + " callback methods for "
 					+ this.callbackMethods.size() + " components");
 		}
+		System.out.println("done Calculating Callback methods, number of runs: "+count);
 	}
-	
+
 	/**
 	 * Registers the callback methods in the given layout control so that they
 	 * are included in the dummy main method
@@ -500,7 +521,7 @@ public class SetupApplication {
 			return;
 		if (lc.getViewClass().getName().startsWith("android."))
 			return;
-		
+
 		// Check whether the current class is actually a view
 		{
 			SootClass sc = lc.getViewClass();
@@ -553,7 +574,7 @@ public class SetupApplication {
 	/**
 	 * Gets the source/sink manager constructed for FlowDroid. Make sure to call calculateSourcesSinksEntryPoints()
 	 * first, or you will get a null result.
-	 * 
+	 *
 	 * @return FlowDroid's source/sink manager
 	 */
 	public AccessPathBasedSourceSinkManager getSourceSinkManager() {
@@ -601,7 +622,7 @@ public class SetupApplication {
 
 	/**
 	 * Runs the data flow analysis
-	 * 
+	 *
 	 * @return The results of the data flow analysis
 	 */
 	public InfoflowResults runInfoflow() {
@@ -610,7 +631,7 @@ public class SetupApplication {
 
 	/**
 	 * Runs the data flow analysis. Make sure to populate the sets of sources, sinks, and entry points first.
-	 * 
+	 *
 	 * @param onResultsAvailable
 	 *            The callback to be invoked when data flow results are available
 	 * @return The results of the data flow analysis
@@ -683,7 +704,7 @@ public class SetupApplication {
 	/**
 	 * Gets the entry point creator used for generating the dummy main method emulating the Android lifecycle and the
 	 * callbacks. Make sure to call calculateSourcesSinksEntryPoints() first, or you will get a null result.
-	 * 
+	 *
 	 * @return The entry point creator
 	 */
 	public AndroidEntryPointCreator getEntryPointCreator() {
@@ -692,7 +713,7 @@ public class SetupApplication {
 
 	/**
 	 * Sets whether the data flow tracker shall stop after the first leak has been found
-	 * 
+	 *
 	 * @param stopAfterFirstFlow
 	 *            True if the data flow tracker shall stop after the first flow has been found, otherwise false
 	 */
@@ -703,7 +724,7 @@ public class SetupApplication {
 	/**
 	 * Sets whether implicit flow tracking shall be enabled. While this allows control flow-based leaks to be found, it
 	 * can severly affect performance and lead to an increased number of false positives.
-	 * 
+	 *
 	 * @param enableImplicitFlows
 	 *            True if implicit flow tracking shall be enabled, otherwise false
 	 */
@@ -713,7 +734,7 @@ public class SetupApplication {
 
 	/**
 	 * Sets whether static fields shall be tracked in the data flow tracker
-	 * 
+	 *
 	 * @param enableStaticFields
 	 *            True if static fields shall be tracked, otherwise false
 	 */
@@ -723,7 +744,7 @@ public class SetupApplication {
 
 	/**
 	 * Sets whether taints associated with thrown exception objects shall be tracked
-	 * 
+	 *
 	 * @param enableExceptions
 	 *            True if exceptions containing tainted data shall be tracked, otherwise false
 	 */
@@ -733,7 +754,7 @@ public class SetupApplication {
 
 	/**
 	 * Sets whether flows starting or ending in system packages such as Android's support library shall be ignored.
-	 * 
+	 *
 	 * @param ignoreFlowsInSystemPackages
 	 *            True if flows starting or ending in system packages shall be ignored, otherwise false.
 	 */
@@ -743,7 +764,7 @@ public class SetupApplication {
 
 	/**
 	 * Sets whether a flow sensitive aliasing algorithm shall be used
-	 * 
+	 *
 	 * @param flowSensitiveAliasing
 	 *            True if a flow sensitive aliasing algorithm shall be used, otherwise false
 	 */
@@ -753,7 +774,7 @@ public class SetupApplication {
 
 	/**
 	 * Sets whether the taint analysis shall consider callbacks
-	 * 
+	 *
 	 * @param enableCallbacks
 	 *            True if taints shall be tracked through callbacks, otherwise false
 	 */
@@ -763,7 +784,7 @@ public class SetupApplication {
 
 	/**
 	 * Sets whether the taint analysis shall consider callback as sources
-	 * 
+	 *
 	 * @param enableCallbackSources
 	 *            True if setting callbacks as sources
 	 */
@@ -773,7 +794,7 @@ public class SetupApplication {
 
 	/**
 	 * Sets the maximum access path length to be used in the solver
-	 * 
+	 *
 	 * @param accessPathLength
 	 *            The maximum access path length to be used in the solver
 	 */
@@ -783,7 +804,7 @@ public class SetupApplication {
 
 	/**
 	 * Sets the callgraph algorithm to be used by the data flow tracker
-	 * 
+	 *
 	 * @param algorithm
 	 *            The callgraph algorithm to be used by the data flow tracker
 	 */
@@ -793,7 +814,7 @@ public class SetupApplication {
 
 	/**
 	 * Sets the mode to be used when deciding whether a UI control is a source or not
-	 * 
+	 *
 	 * @param mode
 	 *            The mode to be used for classifying UI controls as sources
 	 */
@@ -803,7 +824,7 @@ public class SetupApplication {
 
 	/**
 	 * Gets the extra Soot configuration options to be used when running the analysis
-	 * 
+	 *
 	 * @return The extra Soot configuration options to be used when running the analysis, null if the defaults shall be
 	 *         used
 	 */
@@ -813,7 +834,7 @@ public class SetupApplication {
 
 	/**
 	 * Sets the extra Soot configuration options to be used when running the analysis
-	 * 
+	 *
 	 * @param config
 	 *            The extra Soot configuration options to be used when running the analysis, null if the defaults shall
 	 *            be used
@@ -824,7 +845,7 @@ public class SetupApplication {
 
 	/**
 	 * Sets the factory class to be used for constructing interprocedural control flow graphs
-	 * 
+	 *
 	 * @param factory
 	 *            The factory to be used. If null is passed, the default factory is used.
 	 */
@@ -834,7 +855,7 @@ public class SetupApplication {
 
 	/**
 	 * Sets the algorithm to be used for reconstructing the paths between sources and sinks
-	 * 
+	 *
 	 * @param builder
 	 *            The path reconstruction algorithm to be used
 	 */
@@ -846,7 +867,7 @@ public class SetupApplication {
 	 * Sets whether the exact paths between source and sink shall be computed. If this feature is disabled, only the
 	 * source-and-sink pairs are reported. This option only applies if the selected path reconstruction algorithm
 	 * supports path computations.
-	 * 
+	 *
 	 * @param computeResultPaths
 	 *            True if the exact propagation paths shall be computed, otherwise false
 	 */
@@ -856,7 +877,7 @@ public class SetupApplication {
 
 	/**
 	 * Gets the maximum memory consumption during the last analysis run
-	 * 
+	 *
 	 * @return The maximum memory consumption during the last analysis run if available, otherwise -1
 	 */
 	public long getMaxMemoryConsumption() {
@@ -865,7 +886,7 @@ public class SetupApplication {
 
 	/**
 	 * Sets whether and how FlowDroid shall eliminate irrelevant code before running the taint propagation
-	 * 
+	 *
 	 * @param Mode
 	 *            the mode of dead and irrelevant code eliminiation to be used
 	 */

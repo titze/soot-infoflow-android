@@ -147,6 +147,7 @@ public class AnalyzeJimpleClass {
 	 * a new phase that will be executed when Soot is next run
 	 */
 	public void collectCallbackMethodsIncremental() {
+		PackManager.v().getPack("wjtp").remove("wjtp.ajc");
 		Transform transform = new Transform("wjtp.ajc", new SceneTransformer() {
 			protected void internalTransform(String phaseName, @SuppressWarnings("rawtypes") Map options) {
 				// Process the worklist from last time
@@ -370,10 +371,27 @@ public class AnalyzeJimpleClass {
 		if (baseClass.getName().startsWith("android."))
 			return;
 		
-		// If we are a class, one of our superclasses might implement an Android
-		// interface
-		if (sootClass.hasSuperclass())
-			analyzeClassInterfaceCallbacks(baseClass, sootClass.getSuperclass(), lifecycleElement);
+		// changed titze
+//		HashSet<SootMethod> methods = new HashSet<SootMethod>();
+//		// Do we implement one of the well-known interfaces?
+//		for (SootClass i : collectAllInterfaces(sootClass)) {
+//			if (androidCallbacks.contains(i.getName())) {
+//				for (SootMethod sm : i.getMethods()) {
+//					methods.add(getMethodFromHierarchyEx(baseClass, sm.getSubSignature()));
+//				}
+//				// changed titze
+//				break;
+//			}
+//		}
+
+		// changed titze
+//		if (methods.size() == 0) {
+
+			// If we are a class, one of our superclasses might implement an Android
+			// interface
+			if (sootClass.hasSuperclass())
+				analyzeClassInterfaceCallbacks(baseClass, sootClass.getSuperclass(), lifecycleElement);
+//		}
 		
 		// Do we implement one of the well-known interfaces?
 		for (SootClass i : collectAllInterfaces(sootClass)) {
