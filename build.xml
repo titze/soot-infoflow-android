@@ -6,8 +6,8 @@
 	        	 unless="soot.jar"
 	        />
 	    </target>
-	
-	
+
+
 	<target name="clean">
 		<delete quiet="true" dir="build" />
 	</target>
@@ -30,7 +30,7 @@
 
 	<target name="jar" depends="compile">
 		<mkdir dir="build/jar" />
-		<jar destfile="${infoflow-android.jar}" basedir="build/classes">
+		<jar destfile="${infoflow-android.jar}infoflow-android.jar" basedir="build/classes">
 			<manifest>
 				<attribute name="Main-Class" value="soot.jimple.infoflow.android.TestApps.Test" />
 				<!-- <attribute name="Main-Class" value="?"/>-->
@@ -101,6 +101,36 @@
             <fileset dir="src" includes="**/*.java"/>
         </javadoc>
 		<jar basedir="javadoc" destfile="${infoflow-android-javadoc.jar}" />
+
 	</target>
+
+		<target name="fulljar" depends="jar">
+    	<mkdir dir="META-INF"/>
+
+        <manifest file="META-INF/MANIFEST.MF">
+           <attribute name="Main-Class" value="soot.Main"/>
+        </manifest>
+
+        <jar destfile="release/soot-infoflow-android.jar" manifest="META-INF/MANIFEST.MF">
+            <zipfileset src="lib/soot-trunk.jar"/>
+            <zipfileset src="lib/AXMLPrinter2.jar"/>
+            <zipfileset src="lib/axml-2.0.jar"/>
+            <zipfileset src="lib/slf4j-api-1.7.5.jar"/>
+            <zipfileset src="lib/slf4j-simple-1.7.5.jar"/>
+          	<zipfileset src="lib/soot-infoflow.jar"/>
+          	<zipfileset src="infoflow-android.jar"/>
+        </jar>
+		<delete dir="META-INF"/>
+    </target>
+
+    <target name="jarjar" depends="fulljar">
+	    <taskdef name="jarjar" classname="com.tonicsystems.jarjar.JarJarTask"
+	        classpath="lib/jarjar-1.4.jar"/>
+	    <jarjar jarfile="release/soot-infoflow-android.jarjar.jar">
+	        <zipfileset src="release/soot-infoflow-android.jar"/>
+	        <rule pattern="org.objectweb.asm.**" result="org.objectweb.asmold.@1"/>
+	    </jarjar>
+	</target>
+
 
 </project>
